@@ -1,0 +1,31 @@
+<html><head>
+    <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.4.min.js"></script>
+    <script type="text/javascript" src="http://114.112.164.245/jquery.tablesorter.min.js"></script>
+</head><body>
+    <table id="t" style="text-align:right;">
+        <thead><tr><th>id</th><th>action</th><th>name</th><th>sid</th><th>qq</th><th>remains</th><th>last_logintime</th><th>cookies</th></tr></thead>
+        <tbody>
+    {% for acc in accounts %}
+            <tr>
+                <td><a href="http://user.qzone.qq.com/{{ acc['qqid'] }}#!app=311&via=QZ.HashRefresh" target="_blank">{{ acc['sname'] }}</a></td>
+                <td><a href="/cgi-bin/login?id={{ acc['qqid'] }}&passwd={{ acc['passwd'] }}" target="_blank">login</a></td>
+                <td>{{ acc['wbname'] }}</td><td>{{ acc['sid'] }}</td><td>{{ acc['qqid'] }}</td>
+                <td><a href="/xks/{{ acc['sid'] }}" target="_blank">{{ remains[acc['sid']] or 0 }}</a></td>
+                {% if not acc['last_login'] or now - acc['last_login'] > delta %}
+                <td style="color:red">{{ acc['last_login'] }}</td>
+                {% else %}
+                <td style="color:blue">{{ acc['last_login'] }}</td>
+                {% endif %}
+                <td><a href="/cookies.txt?id={{ acc['qqid'] }}" target="_blank">cookies.txt</a></td>
+            </tr>
+    {% endfor %}
+        </tbody>
+    </table>
+    <script type="text/javascript">
+    $(document).ready(function()
+	{
+		$("#t").tablesorter();
+	}
+    );
+    </script>
+</body></html>

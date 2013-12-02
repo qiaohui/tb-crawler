@@ -1,0 +1,17 @@
+sqlalchemy
+redis
+pymongo
+zc-zookeeper-static
+pykeeper
+daemon
+python-gflags
+simplejson
+jinja2
+lxml
+PIL
+web.py
+BeautifulSoup
+python-dateutil
+urllib3
+requests
+pyTOP

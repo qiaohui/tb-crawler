@@ -1,0 +1,15 @@
+
+服务器 guangweb4 192.168.10.108 211.100.61.25
+
+### start qq login proxy server -- 配置在 /etc/rc.local
+
+  python /space/chris/taobao-crawler/qzone/qq_login_proxy.py 8025 --stderr --color --verbose debug --dbhost 192.168.10.71 --db guangbi --dbuser guangbi --dbpasswd guangbi --webdebug --qqhost test.qq.com --daemon
+
+### on client, add ip test.qq.com into hosts
+
+### visit http://test.qq.com:8025, login
+
+### post，一直运行
+
+python qzone/post.py --stderr --color --db guangbi --dbuser guangbi --dbpasswd guangbi --fromdb --dbhost 192.168.10.71 --nouse_paperboy --pbcate shuoshuo --pbverbose warning --loop --use_logfile --commitfail --verbose info --timer 
+

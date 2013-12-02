@@ -1,0 +1,9 @@
+#!/bin/sh
+
+#/usr/bin/pkill -9 pppd
+#/usr/sbin/pppd call dsl-provider
+
+/usr/bin/poff dsl-provider
+echosleep 1
+/usr/bin/pon dsl-provider
+

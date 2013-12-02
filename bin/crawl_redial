@@ -1,0 +1,20 @@
+#!/bin/sh
+
+DBHOST="192.168.32.10"
+STATHOST="192.168.32.157"
+
+#while [ true ]; do sudo /usr/local/bin/redial; echosleep 30; crawl_shop.py --stderr --color --verbose debug --commit --interval 1500 --use_logfile --recent --where "shop.id>=0 and shop.id!=387 and shop.id!=388" --statshost $STATHOST --dbhost $DBHOST ; echosleep 1800; done
+
+while [ true ]; do
+    sudo /usr/local/bin/redial
+    echosleep 30
+    if [[ $? -ne 0 ]]; then
+        break
+    fi
+    crawl_shop.py --use_logfile --verbose debug --commit --interval 1500 --recent --where "shop.id>=0 and shop.id!=387 and shop.id!=388" --statshost $STATHOST --dbhost $DBHOST
+    echosleep 600
+    if [[ $? -ne 0 ]]; then
+        break
+    fi
+done
+

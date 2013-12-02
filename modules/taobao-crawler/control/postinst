@@ -1,0 +1,14 @@
+#!/bin/sh
+
+set -e
+
+INSTDIR=/space/egg
+HOSTNAME=`hostname`
+
+TAOBAOCRAWLER_EGG_NAME=`cat $INSTDIR/taobaocrawler_distname`
+easy_install $INSTDIR/dist/$TAOBAOCRAWLER_EGG_NAME
+
+if [ $HOSTNAME == 'sdl-guang-crawl1' ]; then
+    /bin/cp -f $INSTDIR/crawler /etc/cron.d
+fi
+

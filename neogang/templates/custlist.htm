@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang='zh-cn'><head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.0/css/bootstrap-combined.min.css" rel="stylesheet">
+    <style>
+    .popover {
+        max-width: 1200px !important;
+    }
+    </style>
+</head><body data-spy="scroll" data-target=".subnav" data-offset="50">
+    <!-- <div><form action="/" method="get" id="submit">
+        <div class="row">search: <input id="wd" type="text" value="{{ params.wd }}"></input></div>
+        <div class="row">xks: <input id="xks" type="text" value="{{ params.xks }}"></input></div>
+        <div class="row"><input id="submit" type="submit" data-toggle="button"></input></div>
+        </form></div> -->
+    <div class="usage">url usage:<a href="{{ params | get_full_cust_url }}" target="_blank">{{ params | get_full_cust_url }}</a></div>
+    <div class="debug">
+        <div>{{ xksinfo }}</div>
+        <div>solr url : <a href="{{ solrurl }}" target="_blank">{{ solrurl }}</a></div>
+        <div>parsed query : {{ results['debug']['parsedquery'] }}</div>
+        <div>parsed filter query : {{ results['debug']['parsed_filter_queries'] }}</div>
+        {{ results['debug']['timing'] | render_timing }}
+    </div>
+    <div class="items">
+    {% for doc in results['response']['docs'] %}
+        {%- if loop.index % 4 == 0 -%}
+        <div class="row">
+        {%- endif -%}
+            <div class="span3 item">
+                <!-- img src="{{ doc['item_picurl'] }}" -->
+                <div class="image">
+                <img src="http://image2.guang.j.cn/images/{{ doc['shop_id'] }}/mid2/{{ doc['item_local_picurl'] }}">
+                </div><div class="desc">
+                <a href="{{ doc['item_detailurl'] }}" target="_blank"><span>{{ doc['item_title'] }}</span></a>
+                </div><div> <!-- {{ doc }} --> </div>
+                <div class="price"><span>price : {{ doc['item_price'] }}</span></div>
+                <div class="sort"><span>{{ params.sortby }} : {{ doc[params.sortby] }}</span></div>
+                <div class="tag"><span>tagmatch : {{ doc['guang_tag_match'] }}</span></div>
+                <div class="score"><a href="#" data-trigger='hover' data-original-title="debug" class="debuginfo" data-placement="bottom" title="" data-content="{{ results['debug']['explain'][doc['item_id'] | string] | convert_br | escape }}" >score : {{ doc['score'] }}</a></div>
+        {%- if loop.index % 4 == 0 -%}
+            </div>
+        {%- endif -%}
+        </div>
+    {%- endfor -%}
+    </div>
+    <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.3.min.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.0/js/bootstrap.min.js"></script>
+    <script src="http://cdn.jsdelivr.net/jquery.lazyload/1.8.4/jquery.lazyload.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("img.lazy").lazyload();
+            $(".debuginfo").popover({html : true});
+        });
+    </script>
+</body></html>

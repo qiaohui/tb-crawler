@@ -1,0 +1,15 @@
+#!/bin/sh
+
+DBHOST="192.168.32.10"
+STATHOST="192.168.32.157"
+REDISHOST="192.168.32.15"
+
+while [ true ]; do
+    cd /home/chris/code/taobao-crawler
+    /usr/local/bin/crawl_item.py --verbose info --use_logfile --all --interval 2000 --noupdate_main --update_comments --where "modified>'`date -d "2 days ago" +\%Y-\%m-\%d`' or created>'`date -d "2 days ago" +\%Y-\%m-\%d`'" --stderr --color --verbose debug --nocommit_html --redishost $REDISHOST --statshost $STATHOST --dbhost $DBHOST
+    echosleep 60
+    if [[ $? -ne 0 ]]; then
+        break
+    fi
+done
+

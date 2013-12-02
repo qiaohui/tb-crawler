@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+apt-get install -y --force-yes libxml2-dev libxslt1-dev libjpeg-dev libpng-dev python-mysqldb unzip
+easy_install pip
+/usr/local/bin/pip install dateutils requests urllib3 sqlalchemy redis daemon python-gflags simplejson jinja2 pymongo pykeeper zc-zookeeper-static PIL lxml poster ssh BeautifulSoup web.py python-dateutil
+/usr/local/bin/pip install pyTOP
+

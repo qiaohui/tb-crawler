@@ -1,0 +1,17 @@
+Metadata-Version: 1.1
+Name: guang-crawler
+Version: 0.2
+Summary: adgaga common python libs
+Home-page: ssh://chuansheng.song@review2.jcndev.com:29418/taobao-crawler2
+Author: Chris Song
+Author-email: chuansheng.song@langtaojin.com
+License: langtaojin.com
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: License :: langtaojin.com
+Classifier: Topic :: Software Development
+Classifier: Topic :: Software Development :: Libraries
+Classifier: Topic :: Software Development :: Libraries :: Python Modules

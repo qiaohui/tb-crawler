@@ -1,0 +1,31 @@
+# m h  dom mon dow   command
+
+# update shop level
+0 1 2 * * root (cd /space/crawler; /usr/local/bin/update_shop_level.py --use_logfile --verbose info --all --dbhost 192.168.32.10)
+
+# quick update top 500 item price
+2 */1 * * * root (cd /space/crawler; /usr/local/bin/quick_update_taobao_status.py --use_logfile --verbose info --statshost 192.168.32.157 --xdbconnstrs guang:guang@192.168.32.10:3306/guang?charset=utf8,guang:guang@192.168.33.161:3306/guang?charset=utf8 --limit 50000)
+
+# mark to crawl all
+0 0,8,11,14,16,19,22 * * * root (cd /space/crawler; /usr/local/bin/mark_shop2crawl.py --use_logfile --verbose info --dbhost 192.168.32.10)
+
+0 */8 * * * root (cd /space/crawler; /space/crawler/bin/quick_update_b2c.sh > /dev/null 2>&1)
+0 10 * * * root (cd /space/crawler; /space/crawler/bin/monb2c.sh)
+
+# replace main image
+0 */1 * * * root (cd /space/crawler/imageslog; /usr/local/bin/replace_main_image.py --use_logfile --verbose info --all --dbhost 192.168.32.10)
+
+# get comment total
+0 5 * * * root (cd /space/crawler; /usr/local/bin/get_comments_total.py --use_logfile --verbose info --all --char_limit 5 --dbhost 192.168.33.161 --redishost 192.168.32.103)
+
+# collocation 100*100 image gravity, file validate
+*/30 * * * * root (cd /space/crawler/imageslog; /usr/local/bin/collocation_small_image.py --use_logfile --verbose info --file_validate)
+
+# collocation 100*100 image gravity, db validate
+0 3 * * 1 root (cd /space/crawler/imageslog; /usr/local/bin/collocation_small_image.py --use_logfile --verbose info --db_validate --dbhost 192.168.32.10)
+
+# get shop promotion
+0 6 * * * root (cd /space/crawler; /usr/local/bin/crawl_shop_promotion.py --use_logfile --verbose info --all --dbhost 192.168.32.10)
+
+
+

@@ -1,0 +1,8 @@
+#!/bin/sh
+
+DBHOST="192.168.32.10"
+STATHOST="192.168.32.157"
+REDISHOST="192.168.32.15"
+
+crawl_item.py --verbose info --use_logfile --all --interval 2000 --noupdate_main --update_comments --where "modified>'`date -d "1 days ago" +%Y-%m-%d`' or created>'`date -d "1 days ago" +%Y-%m-%d`'" --redishost $REDISHOST --statshost $STATHOST --dbhost $DBHOST
+

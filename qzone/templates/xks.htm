@@ -1,0 +1,25 @@
+<html><head>
+    <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.6.4.min.js"></script>
+    <script type="text/javascript" src="http://114.112.164.245/jquery.tablesorter.min.js"></script>
+</head><body>
+    <table id="t" style="text-align:right;">
+        <thead><tr><th>id</th><th>sendtime</th><th>grplevel</th><th>errcount</th><th>lasterr</th><th>pic</th><th>content</th><th>error</th></tr></thead>
+        <tbody>
+    {% for item in items %}
+            <tr>
+                <td>{{ item['id'] }}</td><td>{{ item['send_time'] }}</td><td>{{ item['grplevel'] }}</td>
+                <td>{{ item['count'] }}</td><td>{{ item['last_time'] }}</td>
+                <td>{{ item['pic_name'] }}</td>
+                <td>{{ item['content'] }}</td><td>{{ item['reason'] }}</td>
+            </tr>
+    {% endfor %}
+        </tbody>
+    </table>
+    <script type="text/javascript">
+    $(document).ready(function()
+	{
+		$("#t").tablesorter();
+	}
+    );
+    </script>
+</body></html>

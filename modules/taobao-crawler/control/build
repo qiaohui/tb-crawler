@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -e
+
+INSTDIR=/space/egg
+
+cd $GIT_DIR/
+rm -rf dist
+python2.6 setup.py bdist_egg
+
+ls dist > taobaocrawler_distname
+
+addfile $INSTDIR $GIT_DIR/ cron/crawler
+addfile $INSTDIR $GIT_DIR/ taobaocrawler_distname
+copyfile $GIT_DIR/dist $INSTDIR
+
