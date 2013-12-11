@@ -167,7 +167,8 @@ def crawl_one_shop(shop, tb_category, term_factory, db):
                 if not item.is_pic_download:
                     pic_down_failed_num += 1
                     continue
-
+                if item.volume < 0:
+                    item.volume = 0
                 item.db_create(db)
                 success_num += 1
 
@@ -178,18 +179,18 @@ def crawl_one_shop(shop, tb_category, term_factory, db):
                 success_num, failed_num, offline_num, pic_down_failed_num, dead_num)
 
     if back_online_numids:
-        db.execute("update item set status=1 where num_id in (%s)" % ', '.join("'" + str(s) + "'" for s in back_online_numids))
+        db.execute("update item set status=1 where shop_id=%s and num_id in (%s)", shop_id, ', '.join("'" + str(s) + "'" for s in back_online_numids))
         logger.info("shop %s crawler: back online %s", shop_id, len(back_online_numids))
 
     if offline_numids:
-        db.execute("update item set status=2 where num_id in (%s)" % ', '.join("'" + str(s) + "'" for s in offline_numids))
+        db.execute("update item set status=2 where shop_id=%s and num_id in (%s)", shop_id, ', '.join("'" + str(s) + "'" for s in offline_numids))
         logger.info("shop %s crawler: offline %s", shop_id, len(offline_numids))
 
     #抓取失败比较多的，重新抓取
-    if failed_num < 5 or pic_down_failed_num < 5:
-        db.execute("update shop set crawl_status=%s where id=%s", SHOP_CRAWL_STATUS_NONE, shop_id)
-    else:
+    if failed_num > 5:
         db.execute("update shop set crawl_status=%s where id=%s", SHOP_CRAWL_STATUS_WAIT, shop_id)
+    else:
+        db.execute("update shop set crawl_status=%s where id=%s", SHOP_CRAWL_STATUS_NONE, shop_id)
 
     # 以下操作是供统计使用,type=0:新增,1:下架;2:上架
     if len(new_numids) > 0:

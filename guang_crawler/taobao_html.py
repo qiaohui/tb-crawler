@@ -55,10 +55,17 @@ class TaobaoHtml:
         self.price = 0.0
         self.is_offline = False
         self.tmallInitApijson = None
-        self.volume = 0
+        self.volume = -1
         self.max_comments = max_comments
         self.cid = ""
         self.title = ""
+
+        self.dynamicStockData = None
+        self.confirmVolume = 0  #交易成功
+        self.collection = 0     #收藏
+        self.browse = 0         #浏览
+        self.stock = 0          #库存
+        self.postage = ""       #邮资
 
     @statsd_timing('guang.crawl.details.%s' % socket.gethostname())
     def crawl_page(self, url):
@@ -120,108 +127,122 @@ class TaobaoHtml:
 
     def crawl(self):
         try:
-            self.data = self.crawl_page(self.url)
-            if FLAGS.debug_parser:
-                import pdb; pdb.set_trace()
-            if not self.data:
-                logger.warn("download %s %s page failed, possible network connection failure", self.item_id, self.num_id)
-                return
-
-            # check tmall
-            if not self.is_tmall and len(self.data) < 256 and self.url.find('item.taobao.com') > 0 and self.data.find("window.location.href='http://detail.tmall.com/item.htm'+window.location.search") > 0:
-                self.data = self.crawl_page(self.url.replace('item.taobao.com', 'detail.tmall.com'))
-
-            if self.check_offline():
-                self.is_offline = True
-
-            self.html_obj = parse_html(self.data, encoding="gb18030")
-
-            title = self.html_obj.xpath("//html/head/title/text()")
-            if title and title[0].find(u"转卖") > 0:
-                self.is_offline = True
-            if title:
-                self.title = title[0].encode('utf8').replace("-淘宝网", "").replace("-tmall.com天猫", "")
-
-            #tblogo = self.html_obj.xpath("//*[@id='shop-logo']")
-            tmalllogo = self.html_obj.xpath("//*[@id='mallLogo']")
-            if not tmalllogo:
-                tmalllogo = self.html_obj.xpath("//*[@id='simple-logo']")
-            if not self.is_tmall and tmalllogo:
-                self.is_tmall = True
+            self.crawl_title()
 
             self.detailDiv = self.html_obj.xpath("//div[@id='detail']")
             self.buyButton = self.html_obj.xpath("//a[@id='J_LinkBuy']")
-            self.originPrice = self.html_obj.xpath("//strong[@id='J_StrPrice']/em[@class='tb-rmb-num']/text()")
-            if not self.originPrice:
-                self.originPrice = self.html_obj.xpath("//strong[@class='J_originalPrice']/text()")
-                #self.bidPrice = self.html_obj.xpath("//li[contains(concat(' ',normalize-space(@class),' '),' detail-price ')]/strong/text()")
-            self.bidPrice = self.html_obj.xpath("//input[@name='current_price']/@value")
-            self.thumbImages = self.html_obj.xpath("//ul[@id='J_UlThumb']//img/@src")
-            if not len(self.thumbImages):
-                try:
-                    # try load thumb images for tmall page
-                    self.thumbImages = [IMAGESTYLE_RE.subn(r'\g<1>', x)[0] for x in self.html_obj.xpath("//ul[@id='J_UlThumb']//li/@style")]
 
-                    # taobao @src to @data-src
-                    if not len(self.thumbImages):
-                        self.thumbImages = self.html_obj.xpath("//ul[@id='J_UlThumb']//img/@data-src")
-                except:
-                    logger.warn("No thumbs found %s", self.item_id)
+            if not self.is_tmall:
+                self.get_dynamicStock()
 
-            if self.is_tmall:
-                self.cid = get_val(self.data, "categoryId").split('&')[0]
+            self.crawl_volume()
 
-                apiItemInfoUrl = get_val(self.data, "initApi").replace(r'''\/''', "/")
-                self.tmallInitApi = self.crawl_page(apiItemInfoUrl)
-                try:
-                    self.tmallInitApijson = loads(self.tmallInitApi.decode('gb18030').encode('utf8'))
-                except:
-                    logger.info("parse tmall api json failed %s : %s", self.item_id, traceback.format_exc())
-                if self.tmallInitApijson:
-                    try:
-                        self.volume = self.tmallInitApijson['defaultModel']['sellCountDO']['sellCount']
-                    except:
-                        logger.warn("try to get volume from api failed %s", self.item_id)
-                if self.volume < 0:
-                    try:
-                        self.volume = int(get_val(self.tmallInitApi, "sellCount"))
-                    except:
-                        logger.warn("Can not parse item volume %s", self.item_id)
+            # item other param
+            self.crawl_collection()
 
-                # 库存 ：icTotalQuantity
-                """"
-                reviewInfoUrl = get_val(self.data, "apiMallReviews").replace(r'''\/''', "/")
-                reviewInfoData = self.crawl_page(reviewInfoUrl)
-                m = RATECOUNT_RE.match(reviewInfoData)
-                if m:
-                    self.reviewCount = m.group(1)
-                else:
-                    self.reviewCount = None
-                """
-            else:
-                self.cid = get_val(self.data, "cid")
+            self.crawl_stock()
 
-                apiItemInfoVal = get_val(self.data, "apiItemInfo")
-                if apiItemInfoVal:
-                    apiItemInfoUrl = get_val(self.data, "apiItemInfo").replace(r'''\/''', "/")
-                    itemInfoData = self.crawl_page(apiItemInfoUrl)
-                    try:
-                        self.volume = int(get_num_val(itemInfoData, 'quanity'))
-                    except:
-                        self.volume = -1
-                else:
-                    self.volume = -1
+            self.crawl_postage()
 
-                #interval = get_val(data2, 'interval')
-                # 库存 skudata = get_val(self.data, 'valItemInfo').replace(r'''\/''', "/")
-                """
-                reviewInfoUrl = get_val(self.data, "data-commonApi").replace(r'''\/''', "/")
-                reviewInfoData = self.crawl_page(reviewInfoUrl)
-                self.reviewCount = get_val(reviewInfoData, 'total')
-                """
+            logger.info("parse item %s %s other: collection %s, browse %s, stock %s, postage %s", self.item_id,
+                        self.num_id, self.collection, self.browse, self.stock, self.postage)
+
         except:
-            logger.error("crawling %s %s unknown exception %s", self.item_id, self.num_id, traceback.format_exc(), extra={'tags':['crawlItemException',]})
+            logger.error("crawling %s %s unknown exception", self.item_id, self.num_id, extra={'tags':['crawlItemException',]})
             raise
+
+    def crawl_volume(self):
+        if self.is_tmall:
+            apiItemInfoUrl = get_val(self.data, "initApi").replace(r'''\/''', "/")
+            self.tmallInitApi = self.crawl_page(apiItemInfoUrl)
+            try:
+                self.tmallInitApijson = loads(self.tmallInitApi.decode('gb18030').encode('utf8'))
+            except:
+                logger.info("parse tmall api json failed %s : %s", self.item_id, traceback.format_exc())
+            if self.tmallInitApijson:
+                try:
+                    self.volume = self.tmallInitApijson['defaultModel']['sellCountDO']['sellCount']
+                except:
+                    logger.warn("try to get volume from api failed %s", self.item_id)
+            if self.volume < 0:
+                try:
+                    self.volume = int(get_val(self.tmallInitApi, "sellCount"))
+                except:
+                    self.volume = 0
+                    logger.warn("Can not parse tmall item volume %s", self.item_id)
+
+        else:
+            apiItemInfoVal = get_val(self.data, "apiItemInfo")
+            if apiItemInfoVal:
+                apiItemInfoUrl = get_val(self.data, "apiItemInfo").replace(r'''\/''', "/")
+                itemInfoData = self.crawl_page(apiItemInfoUrl)
+                try:
+                    self.volume = int(get_num_val(itemInfoData, 'quanity'))
+                    self.confirmVolume = int(get_num_val(itemInfoData, 'confirmGoods'))
+                except:
+                    self.volume = 0
+                    logger.warn("Can not parse taobao item volume %s", self.item_id)
+            else:
+                self.volume = 0
+
+    def crawl_collection(self):
+        if self.is_tmall:
+            c_url = "http://count.tbcdn.cn/counter3?callback=jsonp126&keys=ICCP_1_" + self.num_id
+            collectionData = self.crawl_page(c_url)
+            if collectionData:
+                self.collection = int(get_num_val(collectionData, "ICCP_1_" + self.num_id))
+            else:
+                logger.warn("Can not parse tmall item collection %s", self.item_id)
+        else:
+            counterApi = get_val(self.data, "counterApi")
+            if counterApi:
+                counterApi = get_val(self.data, "counterApi").replace(r'''\/''', "/")
+                counterData = self.crawl_page(counterApi + "&callback=DT.mods.SKU.CountCenter.saveCounts")
+                try:
+                    self.collection = int(get_num_val(counterData, 'ICCP_1_' + self.num_id))
+                    self.browse = int(get_num_val(counterData, 'ICVT_7_' + self.num_id))
+                except:
+                    self.collection = 0
+                    self.browse = 0
+
+    def crawl_stock(self):
+        if self.is_tmall:
+            try:
+                self.stock = int(get_num_val(self.tmallInitApi, "icTotalQuantity"))
+            except:
+                logger.warn("Can not parse tmall item stock %s", self.item_id)
+        else:
+            try:
+                if self.dynamicStockData:
+                    self.stock = int(get_val(self.dynamicStockData, "stock").strip())
+                else:
+                    logger.warn("Can not parse taobao item stock %s", self.item_id)
+            except:
+                logger.error("Can not parse tmall item stock %s", self.item_id)
+
+    def crawl_postage(self):
+        if self.is_tmall:
+            try:
+                self.postage = self.tmallInitApijson['defaultModel']['deliveryDO']['deliverySkuMap']['default'][0]['postage']
+            except:
+                logger.warn("Con not parse tmall item postage %s", self.item_id)
+        else:
+            try:
+                if self.dynamicStockData:
+                    # 这里比较诡异
+                    data = self.dynamicStockData.replace("&nbsp;", "").replace("&yen;", "").replace(" ","").replace("\t","").replace("\r\n","").strip()
+                    data = re.sub(r'</?\w+[^>]*>','',data).decode('gb18030').encode('utf8')
+                    rg = re.compile("carriage:\'([\s\S]*)\',", re.IGNORECASE|re.DOTALL)
+                    res = rg.search(data)
+                    if res:
+                        self.postage = res.group(0).split(",")[0].replace("carriage:","").replace("'","")
+                        self.postage = unicode(self.postage, "utf-8")
+                    else:
+                        logger.warn("Con not parse taobao item postage %s", self.item_id)
+                else:
+                    logger.warn("Con not parse taobao item postage %s", self.item_id)
+            except:
+                logger.error("Con not parse taobao item postage %s", self.item_id)
 
     def crawl_desc(self):
         try:
@@ -238,6 +259,16 @@ class TaobaoHtml:
             logger.info("Got %s %s desc details %s", self.item_id, self.num_id, len(self.descContent))
         else:
             logger.warn("%s desc url not found", self.item_id)
+
+    def get_dynamicStock(self):
+        # 从script标签中获取并组装url
+        # http://detailskip.taobao.com/json/sib.htm?
+        s = self.html_obj.xpath("//script[contains(text(),'var b=')]/text()")
+        s_re = re.compile("b=\"([^<>]*)\",a=")
+        dynamicStock_url = s_re.search(str(s)).group(1)
+        if dynamicStock_url:
+            dynamicStock_url += "&ref=" + urllib.quote(self.url);
+            self.dynamicStockData = download(dynamicStock_url, self.headers)
 
     def crawl_price(self):
         self.bidPrice = self.html_obj.xpath("//input[@name='current_price']/@value")
@@ -259,8 +290,11 @@ class TaobaoHtml:
                     else:
                         defaultPriceInfo = priceInfo[priceInfo.keys()[0]]
                     # 2013-11-22 改为获取真实促销价格，而不是扣除佣金后的价格
-                    if defaultPriceInfo.has_key('price'):
-                        price = defaultPriceInfo['price']
+                    if defaultPriceInfo.has_key('promotionList') and defaultPriceInfo['promotionList']:
+                        price = defaultPriceInfo['promotionList'][0]['price']
+                    if not price:
+                        if defaultPriceInfo.has_key('price'):
+                            price = defaultPriceInfo['price']
                     if not price:
                         if defaultPriceInfo.has_key('promPrice'):
                             price = defaultPriceInfo['promPrice']['price']
@@ -281,12 +315,14 @@ class TaobaoHtml:
                     price = get_num_val(self.promoteContent, 'price')
             else:
                 self.promoteUrl = "http://marketing.taobao.com/home/promotion/item_promotion_list.do?itemId=%s" % self.num_id
-                self.promoteContent = self.crawl_page(self.promoteUrl).replace('"', '&quot;')
-                tag = "promPrice&quot;:&quot;"
-                if self.promoteContent.find(tag) > 0:
-                    pos = self.promoteContent.find(tag) + len(tag)
-                    pos2 = self.promoteContent.find('&quot;', pos)
-                    price = self.promoteContent[pos:pos2]
+                self.promoteContent = self.crawl_page(self.promoteUrl)
+                if self.promoteContent:
+                    self.promoteContent = self.promoteContent.replace('"', '&quot;')
+                    tag = "promPrice&quot;:&quot;"
+                    if self.promoteContent.find(tag) > 0:
+                        pos = self.promoteContent.find(tag) + len(tag)
+                        pos2 = self.promoteContent.find('&quot;', pos)
+                        price = self.promoteContent[pos:pos2]
 
         if not price:
             tbPrice = self.html_obj.xpath("//strong[@class='tb-price']/text()")
@@ -300,17 +336,10 @@ class TaobaoHtml:
             price = price.split('-')[0].strip()
 
         if not price:
-            # 从script标签中获取并组装url
-            s = self.html_obj.xpath("//script[contains(text(),'var b=')]/text()")
-            s_re = re.compile("b=\"([^<>]*)\",a=")
-            price_url = s_re.search(str(s)).group(1)
-            if price_url:
-                price_url += "&ref=" + urllib.quote(self.url);
-                res = download(price_url, self.headers)
-                rg_m = re.compile('price:\"[0-9]+[.][0-9]+\"', re.IGNORECASE|re.DOTALL).search(res)
-                if rg_m:
-                    price_str = rg_m.group(0).split(":")[1].replace("\"", "")
-                    price = Decimal(price_str)
+            rg_m = re.compile('price:\"[0-9]+[.][0-9]+\"', re.IGNORECASE|re.DOTALL).search(self.dynamicStockData)
+            if rg_m:
+                price_str = rg_m.group(0).split(":")[1].replace("\"", "")
+                price = Decimal(price_str)
 
         # 2013-09-03  get price url
         if not price:

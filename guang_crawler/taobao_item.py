@@ -44,7 +44,7 @@ class TaobaoItem(TaobaoHtml):
 
     def setPicUrl(self):
         if len(self.thumbImages) > 0:
-            tr = re.compile("(.*)_\d+x\d+\.jpg$")
+            tr = re.compile("(.+\.(jpg|png|gif))[^$]*.jpg$")
             self.pic_url = tr.sub(r'\1', self.thumbImages[0])
             try:
                 self.local_pic_url = str("%s_%s.%s" % (self.num_id, str(id(self)), self.pic_url.split('.')[-1].split('?')[0].split('/')[-1]))

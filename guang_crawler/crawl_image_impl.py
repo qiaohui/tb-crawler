@@ -120,6 +120,7 @@ def crawl_item2(kwargs):
 
                 r = re.compile("(var desc='|)(.*)(\\\\|';)", re.M|re.S)
                 tr = re.compile("(.*)_\d+x\d+\.jpg$")
+                tr_new = re.compile("(.+\.(jpg|png|gif))[^$]*.jpg$")
                 desc_thumbs = desc_table_thumbs = lazy_desc_thumbs = []
                 if desc_content:
                     desc_html = r.subn(r'\2', desc_content)[0]
@@ -134,7 +135,16 @@ def crawl_item2(kwargs):
                 images = []
                 pos = 1
                 for url in thumbImages:
-                    images.append((tr.sub(r'\1', url), pos, 1))
+                    ori_url = None
+                    if tr.match(url):
+                        ori_url = tr.sub(r'\1', url)
+                    else:
+                        if tr_new.match(url):
+                            ori_url = tr_new.sub(r'\1', url)
+                        else:
+                            logger.error("crawl item %s %s thumb image urls can not be parsed!", item_id, num_id, extra={'tags':['crawl_exception',]})
+
+                    images.append((ori_url, pos, 1))
                     pos += 1
                 for url in desc_table_thumbs:
                     images.append((url, pos, 2))

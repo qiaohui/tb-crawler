@@ -27,5 +27,7 @@
 # get shop promotion
 0 6 * * * root (cd /space/crawler; /usr/local/bin/crawl_shop_promotion.py --use_logfile --verbose info --all --dbhost 192.168.32.10)
 
+# get shop discount
+30 6 * * * root (cd /space/crawler; /usr/local/bin/crawl_shop_discount.py --use_logfile --verbose info --all --dbhost 192.168.32.10)
 
 

@@ -46,6 +46,7 @@ setup(
                'guang_crawler/crawl_taobao_new.py',
                'guang_crawler/crawl_shop_basic_info.py',
                'guang_crawler/crawl_shop_promotion.py',
+               'guang_crawler/crawl_shop_discount.py',
                'qzone/post.py',
                'qzone/qq_login_proxy.py',
                'bin/recrawl_taobao_item.sh',

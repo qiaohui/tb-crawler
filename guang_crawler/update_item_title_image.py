@@ -15,6 +15,7 @@ import time
 import traceback
 import Image
 import math
+import re
 
 from pygaga.helpers.logger import log_init
 from pygaga.helpers.dbutils import get_db_engine
@@ -32,6 +33,7 @@ gflags.DEFINE_integer('limit', 500000, "Batch counts")
 gflags.DEFINE_boolean('force', False, "is update offline shops?")
 gflags.DEFINE_boolean('commit', False, "is commit data into database?")
 gflags.DEFINE_boolean('forcibly', False, "is forcibly update title and image?")
+gflags.DEFINE_boolean('img_update', False, "is update main image?")
 gflags.DEFINE_string('crawl_path', "/space/wwwroot/image.guang.j.cn/ROOT/images/", "is upload to nfs?")
 
 gflags.DEFINE_boolean('shop_activity', False, "is shop Activity?")
@@ -168,6 +170,23 @@ def update_item(sql):
     spent = time.time() - t
     logger.info("update_item_title_image use time : %s", spent * 1000)
 
+def img_update():
+    sql = "select id,num_id,shop_id,pic_url,local_pic_url from item where pic_url like '%%q90.%%'"
+    db = get_db_engine()
+    items = db.execute(sql)
+    tr = re.compile("(.+\.(jpg|png))[^$]*.jpg$")
+    for item in items:
+        taobao_picurl = item[3]
+        taobao_picurl = tr.sub(r'\1', taobao_picurl)
+        try:
+            width, height = download_image({'item_id':item[0], 'num_id': item[1], 'shop_id': item[2], 'pic_url': taobao_picurl, 'image_name': item[4], 'crawl_path': FLAGS.crawl_path})
+            db.execute("update item set modified=now(), pic_url=%s, pic_width=%s, pic_height=%s where id=%s", taobao_picurl, width, height, item[0])
+            logger.info("item %s update image ok", item[0])
+        except:
+            logger.error("download %s:%s failed reason %s", item[0], taobao_picurl, traceback.format_exc())
+            continue
+
+
 def download_image(kwargs):
     item_id = kwargs['item_id']
     num_id = kwargs['num_id']
@@ -245,6 +264,8 @@ def update_item_main():
         update_one_item(FLAGS.itemid)
     elif FLAGS.shop_activity:
         update_activity_shop(FLAGS.activity_shop_ids)
+    elif FLAGS.img_update:
+        img_update()
     elif FLAGS.check_image:
         # 这里全量检查图片是否存在
         check_image()

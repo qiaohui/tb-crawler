@@ -4,6 +4,6 @@
 #/usr/sbin/pppd call dsl-provider
 
 /usr/bin/poff dsl-provider
-echosleep 1
+sleep 10
 /usr/bin/pon dsl-provider
 

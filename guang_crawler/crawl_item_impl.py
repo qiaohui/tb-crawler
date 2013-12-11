@@ -185,6 +185,10 @@ def crawl_item2(kwargs):
             tb.crawl_price()
 
             if is_commit:
+                # update item_other
+                db.execute("replace into item_other (item_id,num_id,cid,confirmVolume,collection,browse,stock,postage) values (%s,%s,%s,%s,%s,%s,%s,%s)",
+                           item_id, num_id, tb.cid, tb.confirmVolume, tb.collection, tb.browse, tb.stock, tb.postage)
+
                 # check old price and volume
                 pv = list(db.execute("select price, volume from item where id=%s", item_id))
                 price = pv[0][0]
